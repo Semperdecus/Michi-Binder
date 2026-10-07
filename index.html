@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mochi Binder</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/binder.css">
+  <link rel="stylesheet" href="css/dialogs.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Mochi Binder</h1>
+    <div class="topbar-actions">
+      <label class="button button--primary">
+        Upload image
+        <input id="upload" type="file" accept="image/*" multiple hidden>
+      </label>
+      <button id="open-settings" type="button" class="button">Settings</button>
+      <button id="export" type="button" class="button button--accent" disabled>Export PDF</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel">
+      <h2>Artwork</h2>
+      <p class="hint">Drag a thumbnail onto a binder pocket. Click an empty pocket to add a real card.</p>
+      <ul id="library" class="library"></ul>
+    </aside>
+
+    <section class="workspace">
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" data-view="binder">Binder preview</button>
+        <button type="button" role="tab" data-view="sheets">Print sheets <span id="sheet-count"></span></button>
+      </div>
+      <div id="binder-view">
+        <div class="workspace-actions">
+          <button id="add-spread" type="button" class="button">Add spread</button>
+          <button id="remove-spread" type="button" class="button">Remove last spread</button>
+        </div>
+        <div id="binder" class="binder"></div>
+      </div>
+      <div id="sheets-view" hidden>
+        <div id="sheets" class="sheets"></div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <h2>Checks</h2>
+      <ul id="checks" class="checks"></ul>
+      <h2>Last export</h2>
+      <ul id="export-checks" class="checks"></ul>
+      <p class="hint">Print at 100% / Actual size on ~300 gsm matte paper. Measure the 50 mm ruler before cutting.</p>
+    </aside>
+  </main>
+
+  <dialog id="editor" aria-labelledby="editor-title">
+    <h2 id="editor-title">Crop and cut</h2>
+    <div class="editor-controls">
+      <label>Name <input id="editor-name" type="text"></label>
+      <label>Width (pockets)
+        <select id="editor-cols">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+        </select>
+      </label>
+      <label>Height (pockets)
+        <select id="editor-rows">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+        </select>
+      </label>
+      <label>Zoom <input id="editor-zoom" type="range" step="0.01"></label>
+      <label>Frame
+        <select id="editor-frame">
+          <option value="none">None</option>
+          <option value="gold">Gold (classic card)</option>
+          <option value="silver">Silver (illustration rare)</option>
+        </select>
+      </label>
+      <label>Frame around
+        <select id="editor-frame-mode">
+          <option value="outer">Whole artwork</option>
+          <option value="piece">Every piece</option>
+        </select>
+      </label>
+    </div>
+    <div class="editor-stage">
+      <canvas id="editor-canvas"></canvas>
+      <div id="editor-seams" class="editor-seams"></div>
+    </div>
+    <p id="editor-info" class="editor-info"></p>
+    <div class="dialog-actions">
+      <button id="editor-cancel" type="button" class="button">Cancel</button>
+      <button id="editor-save" type="button" class="button button--primary">Save</button>
+    </div>
+  </dialog>
+
+  <dialog id="settings" aria-labelledby="settings-title">
+    <h2 id="settings-title">Settings</h2>
+    <form class="settings-form" method="dialog">
+      <fieldset>
+        <legend>Card and binder (mm)</legend>
+        <label>Card width <input name="cardWidthMm" type="number" min="1" step="0.1" required></label>
+        <label>Card height <input name="cardHeightMm" type="number" min="1" step="0.1" required></label>
+        <label>Slot pitch horizontal <input name="slotPitchXMm" type="number" min="1" step="0.1" required></label>
+        <label>Slot pitch vertical <input name="slotPitchYMm" type="number" min="1" step="0.1" required></label>
+        <p id="settings-gaps" class="hint"></p>
+        <p class="hint">Measure from the left edge of one card to the left edge of the next card for the pitch.</p>
+      </fieldset>
+      <fieldset>
+        <legend>Frame (mm)</legend>
+        <label>Frame width <input name="frameWidthMm" type="number" min="0" step="0.1" required></label>
+        <label>Corner radius <input name="cornerRadiusMm" type="number" min="0" step="0.1" required></label>
+      </fieldset>
+      <fieldset>
+        <legend>Printing</legend>
+        <label>Paper
+          <select name="paper">
+            <option value="A4">A4</option>
+            <option value="Letter">Letter</option>
+          </select>
+        </label>
+        <label>Paper margin (mm) <input name="sheetMarginMm" type="number" min="0" step="0.5" required></label>
+        <label>Space between pieces (mm) <input name="pieceSpacingMm" type="number" min="0" step="0.5" required></label>
+      </fieldset>
+      <fieldset>
+        <legend>Binder preview</legend>
+        <label>Empty pockets
+          <select name="placeholder">
+            <option value="outline">Dotted outline</option>
+            <option value="card">Card back</option>
+          </select>
+        </label>
+      </fieldset>
+      <fieldset>
+        <legend>Real cards</legend>
+        <label class="checkbox-label"><input name="showPrices" type="checkbox"> Show Cardmarket prices (trend, EUR)</label>
+        <p class="hint">Prices come from TCGdex and are shown in card search and on placed cards.</p>
+      </fieldset>
+    </form>
+    <div class="dialog-actions">
+      <button id="settings-reset" type="button" class="button">Reset defaults</button>
+      <button id="settings-cancel" type="button" class="button">Cancel</button>
+      <button id="settings-save" type="button" class="button button--primary">Save</button>
+    </div>
+  </dialog>
+
+  <dialog id="card-picker" class="card-picker" aria-labelledby="card-picker-title">
+    <h2 id="card-picker-title">Add card</h2>
+    <p id="card-picker-pocket" class="hint"></p>
+    <form id="card-search" class="card-search">
+      <label>Pokemon name <input id="card-query" type="search" required placeholder="e.g. Bulbasaur"></label>
+      <button type="submit" class="button button--primary">Search</button>
+      <label>Filter by set <input id="card-set-filter" type="search" placeholder="e.g. Base Set"></label>
+    </form>
+    <p id="card-status" class="hint" role="status"></p>
+    <div class="card-picker-body">
+      <ul id="card-results" class="card-results"></ul>
+      <figure class="card-selected">
+        <img id="card-selected-image" alt="" hidden>
+        <figcaption id="card-selected-caption">Select a card</figcaption>
+        <span id="card-selected-price" class="card-price" hidden></span>
+      </figure>
+    </div>
+    <p class="hint">Card data and images from <a href="https://tcgdex.dev" target="_blank" rel="noopener">TCGdex</a>.</p>
+    <div class="dialog-actions">
+      <button id="card-remove" type="button" class="button" hidden>Remove card</button>
+      <button id="card-cancel" type="button" class="button">Cancel</button>
+      <button id="card-confirm" type="button" class="button button--primary" disabled>Place card</button>
+    </div>
+  </dialog>
+
+  <script src="vendor/jspdf.umd.min.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/cutter.js"></script>
+  <script src="js/packer.js"></script>
+  <script src="js/verifier.js"></script>
+  <script src="js/exporter.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/binder.js"></script>
+  <script src="js/library.js"></script>
+  <script src="js/sheets.js"></script>
+  <script src="js/settings-panel.js"></script>
+  <script src="js/tcgdex.js"></script>
+  <script src="js/card-picker.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+.binder {
+  display: grid;
+  gap: 32px;
+  padding: 24px;
+  margin-top: var(--gap);
+  background: #2b2a28;
+  border-radius: var(--radius);
+}
+
+.spread {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+}
+
+.binder-page-wrapper,
+.sheet-wrapper {
+  margin: 0;
+}
+
+.binder-page-wrapper figcaption,
+.sheet-wrapper figcaption {
+  color: #c9c4ba;
+  font-size: 0.8rem;
+  margin-top: 6px;
+  text-align: center;
+}
+
+.sheet-wrapper figcaption {
+  color: var(--muted);
+}
+
+.binder-page {
+  position: relative;
+  background: var(--binder);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.4);
+}
+
+.pocket {
+  position: absolute;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 3px;
+  outline: 3px solid var(--sleeve);
+  cursor: pointer;
+}
+
+.pocket:hover,
+.pocket:focus-visible {
+  outline-color: var(--accent);
+}
+
+.pocket--filled {
+  background: center / cover no-repeat;
+  cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.pocket--card {
+  background: url("../assets/placeholder.png") center / cover;
+  opacity: 0.55;
+}
+
+.pocket--outline {
+  border: 2px dashed #5a5a62;
+}
+
+.pocket.is-target-ok {
+  outline-color: var(--ok);
+  opacity: 1;
+}
+
+.pocket.is-target-bad {
+  outline-color: var(--error);
+  opacity: 1;
+}
+
+.placed-art {
+  position: absolute;
+  cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.placed-piece {
+  position: absolute;
+}
+
+.drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  transform: translate(12px, 12px);
+  background: var(--text);
+  color: var(--surface);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  z-index: 10;
+}
+
+body.is-dragging,
+body.is-dragging * {
+  cursor: grabbing;
+}
+
+.sheets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.sheet {
+  position: relative;
+  background: #ffffff;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.15);
+}
+
+.sheet-margin {
+  position: absolute;
+  border: 1px dashed #e0b4b4;
+}
+
+.sheet-piece {
+  position: absolute;
+  outline: 1px solid #aaaaaa;
+}
+
+.sheet-ruler {
+  position: absolute;
+  height: 4px;
+  border: 1px solid #000000;
+  border-top: none;
+}
+
+.pocket-price {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.75);
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+

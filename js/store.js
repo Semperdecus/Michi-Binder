@@ -1,13 +1,76 @@
-const DATABASE_NAME = 'mochibinder';
+const DATABASE_NAME = 'michibinder';
+const LEGACY_DATABASE_NAME = 'mochibinder';
 const DATABASE_VERSION = 2;
 const ARTWORK_STORE = 'artworks';
 const META_STORE = 'meta';
 const CARD_STORE = 'cards';
+const ALL_STORES = [ARTWORK_STORE, CARD_STORE, META_STORE];
 
 const Store = {
   database: null,
 
-  open() {
+  async open() {
+    await Store.openCurrent();
+    await Store.migrateLegacy();
+  },
+
+  requestToPromise(request) {
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  },
+
+  async migrateLegacy() {
+    const databases = indexedDB.databases ? await indexedDB.databases() : [];
+    if (!databases.some((database) => database.name === LEGACY_DATABASE_NAME)) {
+      return;
+    }
+    const legacy = await Store.requestToPromise(indexedDB.open(LEGACY_DATABASE_NAME));
+    const storeNames = ALL_STORES.filter((name) => legacy.objectStoreNames.contains(name));
+    const entries = await Store.readEntries(legacy, storeNames);
+    legacy.close();
+    await Store.writeEntries(entries);
+    await Store.requestToPromise(indexedDB.deleteDatabase(LEGACY_DATABASE_NAME));
+  },
+
+  readEntries(database, storeNames) {
+    if (storeNames.length === 0) {
+      return Promise.resolve([]);
+    }
+    const transaction = database.transaction(storeNames, 'readonly');
+    return Promise.all(storeNames.map(async (storeName) => {
+      const store = transaction.objectStore(storeName);
+      const [keys, values] = await Promise.all([
+        Store.requestToPromise(store.getAllKeys()),
+        Store.requestToPromise(store.getAll()),
+      ]);
+      return { storeName, keys, values };
+    }));
+  },
+
+  writeEntries(entries) {
+    if (entries.length === 0) {
+      return Promise.resolve();
+    }
+    return new Promise((resolve, reject) => {
+      const transaction = Store.database.transaction(entries.map((entry) => entry.storeName), 'readwrite');
+      for (const { storeName, keys, values } of entries) {
+        const store = transaction.objectStore(storeName);
+        values.forEach((value, index) => {
+          if (store.keyPath) {
+            store.put(value);
+          } else {
+            store.put(value, keys[index]);
+          }
+        });
+      }
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+  },
+
+  openCurrent() {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
       request.onupgradeneeded = () => {

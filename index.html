@@ -80,10 +80,18 @@
           <option value="silver">Silver (illustration rare)</option>
         </select>
       </label>
+      <label>Frame width (mm) <input id="editor-frame-width" type="number" min="0" max="10" step="0.5"></label>
       <label>Frame around
         <select id="editor-frame-mode">
           <option value="outer">Whole artwork</option>
           <option value="piece">Every piece</option>
+          <option value="pocket">Every pocket</option>
+        </select>
+      </label>
+      <label>Art at pocket gaps
+        <select id="editor-seam-mode">
+          <option value="window">Hide behind gaps (lines stay aligned)</option>
+          <option value="keep">Keep all art (nothing lost)</option>
         </select>
       </label>
     </div>
@@ -112,7 +120,7 @@
       </fieldset>
       <fieldset>
         <legend>Frame (mm)</legend>
-        <label>Frame width <input name="frameWidthMm" type="number" min="0" step="0.1" required></label>
+        <label>Default frame width <input name="frameWidthMm" type="number" min="0" step="0.1" required></label>
         <label>Corner radius <input name="cornerRadiusMm" type="number" min="0" step="0.1" required></label>
       </fieldset>
       <fieldset>

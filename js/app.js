@@ -32,6 +32,7 @@ const App = {
       onPlace: App.place,
       onPocketClick: (pocket, card) => CardPicker.open(pocket, card, App.state.settings),
       onMoveCard: App.moveCard,
+      onEditArtwork: App.edit,
     });
     CardPicker.init({ place: App.placeCard, remove: App.removeCard });
     Sheets.init(document.getElementById('sheets'));
@@ -75,6 +76,7 @@ const App = {
         crop: { zoom: 1, centerX: CROP_CENTER, centerY: CROP_CENTER },
         frame: 'none',
         frameMode: 'outer',
+        seamMode: 'window',
         placement: null,
       };
       App.state.images.set(artwork.id, await createImageBitmap(file));

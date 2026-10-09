@@ -31,7 +31,8 @@ const Library = {
     ctx.scale(THUMBNAIL_PX_PER_MM, THUMBNAIL_PX_PER_MM);
     Cutter.pieces(artwork).forEach((piece) => Cutter.drawPiece(ctx, artwork, image, settings, piece));
     canvas.className = 'library-thumb';
-    canvas.title = 'Drag onto a binder pocket';
+    canvas.title = 'Drag onto a binder pocket, double click to edit';
+    canvas.addEventListener('dblclick', () => Library.actions.edit(artwork.id));
     canvas.addEventListener('pointerdown', (event) => Binder.startDrag(Binder.artworkDragItem(artwork), { col: 0, row: 0 }, event));
     return canvas;
   },

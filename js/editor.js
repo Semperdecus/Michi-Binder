@@ -30,10 +30,21 @@ const Editor = {
     });
     Editor.dialog.querySelector('#editor-frame').addEventListener('change', (event) => {
       Editor.draft.frame = event.target.value;
+      Editor.syncFrameWidthInput();
       Editor.redraw();
+    });
+    Editor.dialog.querySelector('#editor-frame-width').addEventListener('input', (event) => {
+      if (event.target.validity.valid && event.target.value !== '') {
+        Editor.draft.frameWidthMm = Number(event.target.value);
+        Editor.redraw();
+      }
     });
     Editor.dialog.querySelector('#editor-frame-mode').addEventListener('change', (event) => {
       Editor.draft.frameMode = event.target.value;
+      Editor.redraw();
+    });
+    Editor.dialog.querySelector('#editor-seam-mode').addEventListener('change', (event) => {
+      Editor.draft.seamMode = event.target.value;
       Editor.redraw();
     });
     Editor.dialog.querySelector('#editor-name').addEventListener('input', (event) => {
@@ -58,9 +69,17 @@ const Editor = {
     Editor.dialog.querySelector('#editor-rows').value = String(Editor.draft.rows);
     Editor.dialog.querySelector('#editor-frame').value = Editor.draft.frame;
     Editor.dialog.querySelector('#editor-frame-mode').value = Editor.draft.frameMode;
+    Editor.dialog.querySelector('#editor-frame-width').value = String(Cutter.frameWidth(Editor.draft, settings));
+    Editor.syncFrameWidthInput();
+    Editor.draft.seamMode = Editor.draft.seamMode || 'window';
+    Editor.dialog.querySelector('#editor-seam-mode').value = Editor.draft.seamMode;
     Editor.syncZoomInput();
     Editor.redraw();
     Editor.dialog.showModal();
+  },
+
+  syncFrameWidthInput() {
+    Editor.dialog.querySelector('#editor-frame-width').disabled = Editor.draft.frame === 'none';
   },
 
   syncZoomInput() {
@@ -119,10 +138,12 @@ const Editor = {
     ctx.setTransform(Editor.pxPerMm * ratio, 0, 0, Editor.pxPerMm * ratio, 0, 0);
     ctx.fillStyle = EDITOR_BACKGROUND;
     ctx.fillRect(0, 0, art.width, art.height);
-    const source = Cutter.cropSource(draft, image, settings);
-    ctx.globalAlpha = DEAD_ZONE_ALPHA;
-    ctx.drawImage(image, source.left, source.top, source.width, source.height, 0, 0, art.width, art.height);
-    ctx.globalAlpha = 1;
+    if (!Cutter.keepsAllArt(draft)) {
+      const source = Cutter.cropSource(draft, image, settings);
+      ctx.globalAlpha = DEAD_ZONE_ALPHA;
+      ctx.drawImage(image, source.left, source.top, source.width, source.height, 0, 0, art.width, art.height);
+      ctx.globalAlpha = 1;
+    }
     const pieces = Cutter.pieces(draft);
     pieces.forEach((piece) => Cutter.drawPiece(ctx, draft, image, settings, piece));
     Editor.drawJoinedSeams(ctx);
@@ -180,7 +201,10 @@ const Editor = {
     const sizes = pieces.map((piece) => `${piece.span}x1`).join(', ');
     const quality = dpi >= TARGET_DPI ? 'good' : dpi >= MINIMUM_DPI ? 'soft' : 'too low';
     const info = Editor.dialog.querySelector('#editor-info');
-    info.textContent = `${pieces.length} piece(s): ${sizes}. Resolution ${dpi} DPI (${quality}). Drag to pan, scroll to zoom. Dimmed areas are hidden behind pocket seams and not printed.`;
+    const seamHint = Cutter.keepsAllArt(draft)
+      ? 'All art is kept: each row continues where the row above ends, and cut pieces where the previous piece ends.'
+      : 'Dimmed areas are hidden behind pocket seams and not printed.';
+    info.textContent = `${pieces.length} piece(s): ${sizes}. Resolution ${dpi} DPI (${quality}). Drag to pan, scroll to zoom. ${seamHint}`;
     info.dataset.quality = quality === 'good' ? CHECK_OK : quality === 'soft' ? CHECK_WARN : CHECK_ERROR;
   },
 

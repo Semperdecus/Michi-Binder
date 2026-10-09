@@ -13,8 +13,8 @@ const PAPER_SIZES_MM = Object.freeze({
 });
 
 const FRAME_COLORS = Object.freeze({
-  gold: ['#FFF684', '#FFCF3F', '#DDAD22'],
-  silver: ['#F4F4F4', '#E7E7E7', '#B0B0B0'],
+  gold: { edgeMiddle: '#FFE877', edgeHalfway: '#F5D04A', corner: '#DDAE2A', rim: '#FFF6A8' },
+  silver: { edgeMiddle: '#DCDDDE', edgeHalfway: '#BCBEC0', corner: '#979A9C', rim: '#F4F5F5' },
 });
 
 const DEFAULT_SETTINGS = Object.freeze({

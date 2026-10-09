@@ -12,15 +12,17 @@ const Binder = {
   onPlace: null,
   onPocketClick: null,
   onMoveCard: null,
+  onEditArtwork: null,
   suppressClick: false,
   pxPerMm: 1,
   drag: null,
 
-  init(container, { onPlace, onPocketClick, onMoveCard }) {
+  init(container, { onPlace, onPocketClick, onMoveCard, onEditArtwork }) {
     Binder.container = container;
     Binder.onPlace = onPlace;
     Binder.onPocketClick = onPocketClick;
     Binder.onMoveCard = onMoveCard;
+    Binder.onEditArtwork = onEditArtwork;
     window.addEventListener('resize', () => Binder.state && Binder.render(Binder.state));
   },
 
@@ -133,7 +135,8 @@ const Binder = {
     const art = Geometry.artSize(settings, artwork.cols, artwork.rows);
     const placed = document.createElement('div');
     placed.className = 'placed-art';
-    placed.title = `${artwork.name}: drag to move`;
+    placed.title = `${artwork.name}: drag to move, double click to edit`;
+    placed.addEventListener('dblclick', () => Binder.onEditArtwork(artwork.id));
     placed.style.left = Binder.mm(artwork.placement.col * settings.slotPitchXMm + Geometry.gapX(settings) / 2);
     placed.style.top = Binder.mm(artwork.placement.row * settings.slotPitchYMm + Geometry.gapY(settings) / 2);
     placed.style.width = Binder.mm(art.width);

@@ -3,14 +3,27 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <script>
+    try {
+      const stored = localStorage.getItem('color-scheme');
+      document.querySelector('meta[name="color-scheme"]').content = stored === 'light' ? 'light' : 'dark';
+    } catch {}
+  </script>
   <title>Michi Binder</title>
+  <link rel="stylesheet" href="css/fonts.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/binder.css">
   <link rel="stylesheet" href="css/dialogs.css">
 </head>
 <body>
   <header class="topbar">
-    <h1>Michi Binder</h1>
+    <div class="topbar-title">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <h1>Michi Binder</h1>
+      <select id="binder-select" class="binder-select" aria-label="Open binder"></select>
+      <button id="open-binders" type="button" class="button">Binders</button>
+    </div>
     <div class="topbar-actions">
       <label class="button button--primary">
         Upload image
@@ -23,9 +36,20 @@
 
   <main class="layout">
     <aside class="panel">
-      <h2>Artwork</h2>
-      <p class="hint">Drag a thumbnail onto a binder pocket. Click an empty pocket to add a real card.</p>
-      <ul id="library" class="library"></ul>
+      <div class="tabs panel-tabs" role="tablist">
+        <button type="button" role="tab" data-library-tab="artwork">Artwork</button>
+        <button type="button" role="tab" data-library-tab="covers">Frames</button>
+      </div>
+      <div id="library-artwork-panel" role="tabpanel">
+        <p class="hint">Drag a thumbnail onto a binder pocket. Click an empty pocket to add a real card.</p>
+        <button id="artwork-print-all" type="button" class="button library-print-all"></button>
+        <ul id="library" class="library"></ul>
+      </div>
+      <div id="library-covers-panel" role="tabpanel" hidden>
+        <p class="hint">Click a pocket and choose Add frame to make a dex entry frame or a colored sleeve. Drag a frame onto another pocket to move it.</p>
+        <button id="covers-print-all" type="button" class="button library-print-all"></button>
+        <ul id="cover-library" class="library"></ul>
+      </div>
     </aside>
 
     <section class="workspace">
@@ -34,10 +58,6 @@
         <button type="button" role="tab" data-view="sheets">Print sheets <span id="sheet-count"></span></button>
       </div>
       <div id="binder-view">
-        <div class="workspace-actions">
-          <button id="add-spread" type="button" class="button">Add spread</button>
-          <button id="remove-spread" type="button" class="button">Remove last spread</button>
-        </div>
         <div id="binder" class="binder"></div>
       </div>
       <div id="sheets-view" hidden>
@@ -54,50 +74,52 @@
     </aside>
   </main>
 
-  <dialog id="editor" aria-labelledby="editor-title">
+  <dialog id="editor" class="editor-dialog" aria-labelledby="editor-title">
     <h2 id="editor-title">Crop and cut</h2>
-    <div class="editor-controls">
-      <label>Name <input id="editor-name" type="text"></label>
-      <label>Width (pockets)
-        <select id="editor-cols">
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-        </select>
-      </label>
-      <label>Height (pockets)
-        <select id="editor-rows">
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-        </select>
-      </label>
-      <label>Zoom <input id="editor-zoom" type="range" step="0.01"></label>
-      <label>Frame
-        <select id="editor-frame">
-          <option value="none">None</option>
-          <option value="gold">Gold (classic card)</option>
-          <option value="silver">Silver (illustration rare)</option>
-        </select>
-      </label>
-      <label>Frame width (mm) <input id="editor-frame-width" type="number" min="0" max="10" step="0.5"></label>
-      <label>Frame around
-        <select id="editor-frame-mode">
-          <option value="outer">Whole artwork</option>
-          <option value="piece">Every piece</option>
-          <option value="pocket">Every pocket</option>
-        </select>
-      </label>
-      <label>Art at pocket gaps
-        <select id="editor-seam-mode">
-          <option value="window">Hide behind gaps (lines stay aligned)</option>
-          <option value="keep">Keep all art (nothing lost)</option>
-        </select>
-      </label>
-    </div>
-    <div class="editor-stage">
-      <canvas id="editor-canvas"></canvas>
-      <div id="editor-seams" class="editor-seams"></div>
+    <div class="editor-body">
+      <div class="editor-controls">
+        <label>Name <input id="editor-name" type="text"></label>
+        <label>Width (pockets)
+          <select id="editor-cols">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+        </label>
+        <label>Height (pockets)
+          <select id="editor-rows">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+        </label>
+        <label>Zoom <input id="editor-zoom" type="range" step="0.01"></label>
+        <label>Frame
+          <select id="editor-frame">
+            <option value="none">None</option>
+            <option value="gold">Gold (classic card)</option>
+            <option value="silver">Silver (illustration rare)</option>
+          </select>
+        </label>
+        <label>Frame width (mm) <input id="editor-frame-width" type="number" min="0" max="10" step="0.5"></label>
+        <label>Frame around
+          <select id="editor-frame-mode">
+            <option value="outer">Whole artwork</option>
+            <option value="piece">Every piece</option>
+            <option value="pocket">Every pocket</option>
+          </select>
+        </label>
+        <label>Art at pocket gaps
+          <select id="editor-seam-mode">
+            <option value="window">Hide behind gaps</option>
+            <option value="keep">Keep all art</option>
+          </select>
+        </label>
+      </div>
+      <div class="editor-stage">
+        <canvas id="editor-canvas"></canvas>
+        <div id="editor-seams" class="editor-seams"></div>
+      </div>
     </div>
     <p id="editor-info" class="editor-info"></p>
     <div class="dialog-actions">
@@ -106,48 +128,63 @@
     </div>
   </dialog>
 
-  <dialog id="settings" aria-labelledby="settings-title">
+  <dialog id="settings" class="settings-dialog" aria-labelledby="settings-title">
     <h2 id="settings-title">Settings</h2>
     <form class="settings-form" method="dialog">
-      <fieldset>
-        <legend>Card and binder (mm)</legend>
-        <label>Card width <input name="cardWidthMm" type="number" min="1" step="0.1" required></label>
-        <label>Card height <input name="cardHeightMm" type="number" min="1" step="0.1" required></label>
-        <label>Slot pitch horizontal <input name="slotPitchXMm" type="number" min="1" step="0.1" required></label>
-        <label>Slot pitch vertical <input name="slotPitchYMm" type="number" min="1" step="0.1" required></label>
-        <p id="settings-gaps" class="hint"></p>
-        <p class="hint">Measure from the left edge of one card to the left edge of the next card for the pitch.</p>
-      </fieldset>
-      <fieldset>
-        <legend>Frame (mm)</legend>
-        <label>Default frame width <input name="frameWidthMm" type="number" min="0" step="0.1" required></label>
-        <label>Corner radius <input name="cornerRadiusMm" type="number" min="0" step="0.1" required></label>
-      </fieldset>
-      <fieldset>
-        <legend>Printing</legend>
-        <label>Paper
-          <select name="paper">
-            <option value="A4">A4</option>
-            <option value="Letter">Letter</option>
-          </select>
-        </label>
-        <label>Paper margin (mm) <input name="sheetMarginMm" type="number" min="0" step="0.5" required></label>
-        <label>Space between pieces (mm) <input name="pieceSpacingMm" type="number" min="0" step="0.5" required></label>
-      </fieldset>
-      <fieldset>
-        <legend>Binder preview</legend>
-        <label>Empty pockets
-          <select name="placeholder">
-            <option value="outline">Dotted outline</option>
-            <option value="card">Card back</option>
-          </select>
-        </label>
-      </fieldset>
-      <fieldset>
-        <legend>Real cards</legend>
-        <label class="checkbox-label"><input name="showPrices" type="checkbox"> Show Cardmarket prices (trend, EUR)</label>
-        <p class="hint">Prices come from TCGdex and are shown in card search and on placed cards.</p>
-      </fieldset>
+      <div class="settings-column">
+        <fieldset>
+          <legend>Appearance</legend>
+          <label>Theme
+            <select name="theme">
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+            </select>
+          </label>
+        </fieldset>
+        <fieldset>
+          <legend>Frame (mm)</legend>
+          <label>Default frame width <input name="frameWidthMm" type="number" min="0" step="0.1" required></label>
+          <label>Corner radius <input name="cornerRadiusMm" type="number" min="0" step="0.1" required></label>
+          <label>Frame and sleeve extra size (mm) <input name="coverLeewayMm" type="number" min="0" max="6" step="0.5" required></label>
+          <p class="hint">Frames print this much wider and taller than a card, so they slide over it easily.</p>
+        </fieldset>
+        <fieldset>
+          <legend>Binder preview</legend>
+          <label>Empty pockets
+            <select name="placeholder">
+              <option value="outline">Dotted outline</option>
+              <option value="card">Card back</option>
+            </select>
+          </label>
+        </fieldset>
+      </div>
+      <div class="settings-column">
+        <fieldset>
+          <legend>Card and binder (mm)</legend>
+          <label>Card width <input name="cardWidthMm" type="number" min="1" step="0.1" required></label>
+          <label>Card height <input name="cardHeightMm" type="number" min="1" step="0.1" required></label>
+          <label>Slot pitch horizontal <input name="slotPitchXMm" type="number" min="1" step="0.1" required></label>
+          <label>Slot pitch vertical <input name="slotPitchYMm" type="number" min="1" step="0.1" required></label>
+          <p id="settings-gaps" class="hint"></p>
+          <p class="hint">Measure from the left edge of one card to the left edge of the next card for the pitch.</p>
+        </fieldset>
+        <fieldset>
+          <legend>Printing</legend>
+          <label>Paper
+            <select name="paper">
+              <option value="A4">A4</option>
+              <option value="Letter">Letter</option>
+            </select>
+          </label>
+          <label>Paper margin (mm) <input name="sheetMarginMm" type="number" min="0" step="0.5" required></label>
+          <label>Space between pieces (mm) <input name="pieceSpacingMm" type="number" min="0" step="0.5" required></label>
+        </fieldset>
+        <fieldset>
+          <legend>Real cards</legend>
+          <label class="checkbox-label"><input name="showPrices" type="checkbox"> Show Cardmarket prices (trend, EUR)</label>
+          <p class="hint">Prices come from TCGdex and are shown in card search and on placed cards.</p>
+        </fieldset>
+      </div>
     </form>
     <div class="dialog-actions">
       <button id="settings-reset" type="button" class="button">Reset defaults</button>
@@ -156,35 +193,128 @@
     </div>
   </dialog>
 
-  <dialog id="card-picker" class="card-picker" aria-labelledby="card-picker-title">
-    <h2 id="card-picker-title">Add card</h2>
-    <p id="card-picker-pocket" class="hint"></p>
-    <form id="card-search" class="card-search">
-      <label>Pokemon name <input id="card-query" type="search" required placeholder="e.g. Bulbasaur"></label>
-      <button type="submit" class="button button--primary">Search</button>
-      <label>Filter by set <input id="card-set-filter" type="search" placeholder="e.g. Base Set"></label>
+  <dialog id="confirm" class="confirm-dialog" aria-labelledby="confirm-title">
+    <form method="dialog">
+      <h2 id="confirm-title"></h2>
+      <p id="confirm-message" class="confirm-message"></p>
+      <div class="dialog-actions">
+        <button type="submit" value="cancel" class="button">Cancel</button>
+        <button id="confirm-ok" type="submit" value="confirm" class="button button--danger"></button>
+      </div>
     </form>
-    <p id="card-status" class="hint" role="status"></p>
-    <div class="card-picker-body">
-      <ul id="card-results" class="card-results"></ul>
-      <figure class="card-selected">
-        <img id="card-selected-image" alt="" hidden>
-        <figcaption id="card-selected-caption">Select a card</figcaption>
-        <span id="card-selected-price" class="card-price" hidden></span>
-      </figure>
+  </dialog>
+
+  <dialog id="binders" class="binders-dialog" aria-labelledby="binders-title">
+    <h2 id="binders-title">Binders</h2>
+    <p class="hint">Binders are saved in this browser automatically. Export a binder to a file for a backup or to move it to another computer.</p>
+    <div class="workspace-actions">
+      <button id="binder-new" type="button" class="button button--primary">New binder</button>
+      <label class="button">
+        Import binder file
+        <input id="binder-import" type="file" accept=".json,application/json" hidden>
+      </label>
     </div>
-    <p class="hint">Card data and images from <a href="https://tcgdex.dev" target="_blank" rel="noopener">TCGdex</a>.</p>
+    <p id="binders-status" class="binders-status" role="status"></p>
+    <ul id="binder-list" class="binder-list"></ul>
     <div class="dialog-actions">
-      <button id="card-remove" type="button" class="button" hidden>Remove card</button>
-      <button id="card-cancel" type="button" class="button">Cancel</button>
-      <button id="card-confirm" type="button" class="button button--primary" disabled>Place card</button>
+      <button id="binders-close" type="button" class="button">Close</button>
     </div>
+  </dialog>
+
+  <dialog id="card-picker" class="card-picker" aria-labelledby="card-picker-title">
+    <h2 id="card-picker-title">Pocket</h2>
+    <p id="card-picker-pocket" class="hint"></p>
+    <div id="pocket-tabs" class="tabs dialog-tabs" role="tablist">
+      <button type="button" role="tab" data-pocket-tab="card">Card</button>
+      <button id="frame-tab" type="button" role="tab" data-pocket-tab="frame">Add frame</button>
+    </div>
+    <section id="pocket-card-panel" role="tabpanel">
+      <form id="card-search" class="card-search">
+        <label>Pokemon name <input id="card-query" type="search" required placeholder="e.g. Bulbasaur"></label>
+        <button type="submit" class="button button--primary">Search</button>
+        <label>Filter by set <input id="card-set-filter" type="search" placeholder="e.g. Base Set"></label>
+      </form>
+      <p id="card-status" class="hint" role="status"></p>
+      <div class="card-picker-body">
+        <ul id="card-results" class="card-results"></ul>
+        <figure class="card-selected">
+          <img id="card-selected-image" alt="" hidden>
+          <figcaption id="card-selected-caption">Select a card</figcaption>
+          <span id="card-selected-price" class="card-price" hidden></span>
+        </figure>
+      </div>
+      <p class="hint">Card data and images from <a href="https://tcgdex.dev" target="_blank" rel="noopener">TCGdex</a>.</p>
+      <div class="dialog-actions">
+        <button id="card-remove" type="button" class="button" hidden>Remove card</button>
+        <button id="card-cancel" type="button" class="button">Cancel</button>
+        <button id="card-confirm" type="button" class="button button--primary" disabled>Place card</button>
+      </div>
+    </section>
+    <section id="pocket-frame-panel" role="tabpanel" hidden>
+      <div class="frame-kind" role="radiogroup" aria-label="Frame type">
+        <button type="button" role="radio" data-frame-kind="dex">Dex entry frame</button>
+        <button type="button" role="radio" data-frame-kind="sleeve">Colored sleeves</button>
+      </div>
+      <div class="cover-editor">
+        <form id="cover-form" class="cover-form">
+          <div class="cover-form-wide cover-dex">
+            <label>Fill from Pokédex <input id="dex-query" type="search" list="dex-names" placeholder="Name or number, e.g. Shellder" autocomplete="off"></label>
+            <button id="dex-fill" type="button" class="button">Fill</button>
+            <label>Pokédex entry
+              <select id="dex-entry" disabled>
+                <option>Fill first</option>
+              </select>
+            </label>
+            <p id="dex-status" class="hint" role="status"></p>
+            <datalist id="dex-names"></datalist>
+          </div>
+          <div class="cover-form-wide cover-style">
+            <label>Variation
+              <select name="variant" id="cover-variant"></select>
+            </label>
+            <label>Label font
+              <select name="labelFont" id="cover-label-font"></select>
+            </label>
+            <label class="cover-style-wide">Handwriting
+              <select name="handFont" id="cover-hand-font"></select>
+            </label>
+          </div>
+          <label>Species name <input name="speciesName" type="text" placeholder="e.g. Shellder"></label>
+          <label>Species number <input name="speciesNumber" type="text" placeholder="e.g. 0090"></label>
+          <label>Classification <input name="classification" type="text" placeholder="e.g. Bivalve Pokémon"></label>
+          <label>Type(s) <input name="types" type="text" placeholder="e.g. Water"></label>
+          <label>Height <input name="height" type="text" placeholder="e.g. 0.3m"></label>
+          <label>Weight <input name="weight" type="text" placeholder="e.g. 4kg"></label>
+          <label class="cover-form-wide">Description <textarea name="description" rows="2" placeholder="e.g. It swims facing backward by opening and closing its two-piece shell."></textarea></label>
+        </form>
+        <div id="sleeve-picker" class="sleeve-picker" hidden>
+          <p class="sleeve-picker-title">Sleeve color: <strong id="sleeve-color-name"></strong></p>
+          <div id="sleeve-colors" class="sleeve-colors" role="radiogroup" aria-label="Sleeve color"></div>
+          <p class="hint">Sleeves are only shown in the binder preview, they are not printed. The coloured edge uses the extra size from Settings.</p>
+        </div>
+        <div class="cover-preview-column">
+          <div class="cover-preview">
+            <img id="cover-preview-card" alt="" hidden>
+            <div id="cover-preview-canvas"></div>
+          </div>
+          <p id="cover-preview-hint" class="hint">The window is cut out on print, so the card underneath shows through.</p>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button id="cover-delete" type="button" class="button" hidden>Delete frame</button>
+        <button id="cover-cancel" type="button" class="button">Cancel</button>
+        <button id="cover-save" type="button" class="button button--primary">Place frame</button>
+      </div>
+    </section>
   </dialog>
 
   <script src="vendor/jspdf.umd.min.js"></script>
   <script src="js/settings.js"></script>
   <script src="js/store.js"></script>
   <script src="js/cutter.js"></script>
+  <script src="js/cover-styles.js"></script>
+  <script src="js/covers.js"></script>
+  <script src="js/sleeves.js"></script>
   <script src="js/packer.js"></script>
   <script src="js/verifier.js"></script>
   <script src="js/exporter.js"></script>
@@ -192,9 +322,16 @@
   <script src="js/binder.js"></script>
   <script src="js/library.js"></script>
   <script src="js/sheets.js"></script>
+  <script src="js/theme.js"></script>
   <script src="js/settings-panel.js"></script>
   <script src="js/tcgdex.js"></script>
+  <script src="js/pokeapi.js"></script>
   <script src="js/card-picker.js"></script>
+  <script src="js/cover-editor.js"></script>
+  <script src="js/cover-actions.js"></script>
+  <script src="js/confirm-dialog.js"></script>
+  <script src="js/binders.js"></script>
+  <script src="js/binders-panel.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

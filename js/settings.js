@@ -29,6 +29,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   cornerRadiusMm: 3,
   placeholder: 'outline',
   showPrices: false,
+  coverLeewayMm: 2,
 });
 
 const Geometry = {

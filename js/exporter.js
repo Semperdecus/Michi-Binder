@@ -11,16 +11,41 @@ const CALIBRATION_FONT_PT = 6;
 const CALIBRATION_LINE_WIDTH_MM = 0.2;
 
 const Exporter = {
+  printable(state) {
+    return state.artworks.filter((artwork) => artwork.print !== false);
+  },
+
+  printableCovers(state) {
+    return state.covers.filter((cover) => !Sleeves.isSleeve(cover) && cover.print !== false);
+  },
+
+  hasPrintable(state) {
+    return Exporter.printable(state).length + Exporter.printableCovers(state).length > 0;
+  },
+
   buildItems(state) {
-    return state.artworks.flatMap((artwork) =>
+    const settings = state.settings;
+    const artworkItems = Exporter.printable(state).flatMap((artwork) =>
       Cutter.pieces(artwork).map((piece) => ({
-        artwork,
+        kind: 'artwork',
         piece,
         label: `${artwork.name} row ${piece.row + 1} col ${piece.colStart + 1}`,
-        width: Geometry.pieceWidth(state.settings, piece.span),
-        height: state.settings.cardHeightMm,
+        width: Geometry.pieceWidth(settings, piece.span),
+        height: settings.cardHeightMm,
+        render: (pxPerMm, rotated) =>
+          Cutter.renderPieceCanvas(artwork, state.images.get(artwork.id), settings, piece, pxPerMm, rotated, true),
       })),
     );
+    const coverSize = Covers.size(settings);
+    const coverItems = Exporter.printableCovers(state).map((cover) => ({
+      kind: 'cover',
+      piece: { span: 1 },
+      label: `${Covers.title(cover)} frame`,
+      width: coverSize.width,
+      height: coverSize.height,
+      render: (pxPerMm, rotated) => Covers.renderCanvas(cover, settings, pxPerMm, rotated, 'print'),
+    }));
+    return [...artworkItems, ...coverItems];
   },
 
   plan(state) {
@@ -65,9 +90,7 @@ const Exporter = {
         doc = new jsPDF({ unit: 'mm', format: [paper.width, paper.height], orientation: sheet.orientation });
       }
       for (const placement of sheet.placements) {
-        const { artwork, piece } = placement.item;
-        const image = state.images.get(artwork.id);
-        const canvas = Cutter.renderPieceCanvas(artwork, image, state.settings, piece, pxPerMm, placement.rotated);
+        const canvas = placement.item.render(pxPerMm, placement.rotated);
         doc.addImage(canvas.toDataURL('image/jpeg', JPEG_QUALITY), 'JPEG', placement.x, placement.y, placement.width, placement.height);
         doc.setDrawColor(CUT_LINE_GREY);
         doc.setLineWidth(CUT_LINE_WIDTH_MM);

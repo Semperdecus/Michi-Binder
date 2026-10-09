@@ -1,10 +1,12 @@
 const DATABASE_NAME = 'michibinder';
 const LEGACY_DATABASE_NAME = 'mochibinder';
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 4;
 const ARTWORK_STORE = 'artworks';
 const META_STORE = 'meta';
 const CARD_STORE = 'cards';
-const ALL_STORES = [ARTWORK_STORE, CARD_STORE, META_STORE];
+const BINDER_STORE = 'binders';
+const COVER_STORE = 'covers';
+const ALL_STORES = [ARTWORK_STORE, CARD_STORE, META_STORE, BINDER_STORE, COVER_STORE];
 
 const Store = {
   database: null,
@@ -84,6 +86,12 @@ const Store = {
         if (!database.objectStoreNames.contains(CARD_STORE)) {
           database.createObjectStore(CARD_STORE, { keyPath: 'id' });
         }
+        if (!database.objectStoreNames.contains(BINDER_STORE)) {
+          database.createObjectStore(BINDER_STORE, { keyPath: 'id' });
+        }
+        if (!database.objectStoreNames.contains(COVER_STORE)) {
+          database.createObjectStore(COVER_STORE, { keyPath: 'id' });
+        }
       };
       request.onsuccess = () => {
         Store.database = request.result;
@@ -124,6 +132,30 @@ const Store = {
 
   deleteCard(id) {
     return Store.run(CARD_STORE, 'readwrite', (store) => store.delete(id));
+  },
+
+  loadCovers() {
+    return Store.run(COVER_STORE, 'readonly', (store) => store.getAll());
+  },
+
+  saveCover(cover) {
+    return Store.run(COVER_STORE, 'readwrite', (store) => store.put(cover));
+  },
+
+  deleteCover(id) {
+    return Store.run(COVER_STORE, 'readwrite', (store) => store.delete(id));
+  },
+
+  loadBinders() {
+    return Store.run(BINDER_STORE, 'readonly', (store) => store.getAll());
+  },
+
+  saveBinder(binder) {
+    return Store.run(BINDER_STORE, 'readwrite', (store) => store.put(binder));
+  },
+
+  deleteBinder(id) {
+    return Store.run(BINDER_STORE, 'readwrite', (store) => store.delete(id));
   },
 
   loadMeta(key) {

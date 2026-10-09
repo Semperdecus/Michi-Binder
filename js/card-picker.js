@@ -19,6 +19,34 @@ const CardPicker = {
     CardPicker.element('card-remove').addEventListener('click', CardPicker.remove);
     CardPicker.element('card-cancel').addEventListener('click', () => CardPicker.dialog.close());
     CardPicker.priceObserver = new IntersectionObserver(CardPicker.onPriceVisible);
+    document.querySelectorAll('[data-pocket-tab]').forEach((tab) => {
+      tab.addEventListener('click', () => CardPicker.showTab(tab.dataset.pocketTab));
+    });
+  },
+
+  showTab(name) {
+    document.querySelectorAll('[data-pocket-tab]').forEach((tab) => {
+      tab.setAttribute('aria-selected', String(tab.dataset.pocketTab === name));
+    });
+    CardPicker.element('pocket-card-panel').hidden = name !== 'card';
+    CardPicker.element('pocket-frame-panel').hidden = name !== 'frame';
+  },
+
+  pocketText(pocket) {
+    return `Page ${pocket.page + 1}, row ${pocket.row + 1}, column ${pocket.col + 1}`;
+  },
+
+  openCover(cover, card, cardUrl, settings) {
+    if (cover.placement) {
+      CardPicker.open(cover.placement, card, settings, cardUrl, cover);
+      return;
+    }
+    CardPicker.element('card-picker-title').textContent = 'Edit frame';
+    CardPicker.element('card-picker-pocket').textContent = 'Not in the binder';
+    CardPicker.element('pocket-tabs').hidden = true;
+    CoverEditor.load({ cover, cardUrl, settings });
+    CardPicker.showTab('frame');
+    CardPicker.dialog.showModal();
   },
 
   onPriceVisible(entries) {
@@ -41,17 +69,23 @@ const CardPicker = {
     CardPicker.element('card-status').textContent = text;
   },
 
-  open(pocket, existing, settings) {
+  open(pocket, existing, settings, cardUrl, cover = null) {
     CardPicker.pocket = pocket;
     CardPicker.showPrices = settings.showPrices;
     CardPicker.select(null);
-    CardPicker.element('card-picker-pocket').textContent =
-      `Page ${pocket.page + 1}, row ${pocket.row + 1}, column ${pocket.col + 1}` +
+    CardPicker.element('card-picker-title').textContent = cover ? 'Edit frame' : 'Pocket';
+    CardPicker.element('frame-tab').textContent = cover ? 'Frame' : 'Add frame';
+    CardPicker.element('card-picker-pocket').textContent = CardPicker.pocketText(pocket) +
       (existing ? `. Current card: ${existing.name} (${existing.setName} ${existing.number})` : '');
     CardPicker.element('card-remove').hidden = !existing;
+    CardPicker.element('pocket-tabs').hidden = false;
     CardPicker.renderResults();
+    CoverEditor.load({ cover, pocket, cardUrl, cardName: existing?.name, settings });
+    CardPicker.showTab(cover ? 'frame' : 'card');
     CardPicker.dialog.showModal();
-    CardPicker.element('card-query').focus();
+    if (!cover) {
+      CardPicker.element('card-query').focus();
+    }
   },
 
   async search() {

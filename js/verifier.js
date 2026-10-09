@@ -15,13 +15,10 @@ const Verifier = {
     if (Geometry.gapX(settings) < 0 || Geometry.gapY(settings) < 0) {
       checks.push({ level: CHECK_ERROR, text: 'Slot pitch is smaller than the card size. Fix it in Settings.' });
     }
-    if (state.artworks.length === 0) {
-      checks.push({ level: CHECK_WARN, text: 'No artwork uploaded yet.' });
+    if (state.artworks.length === 0 && state.covers.length === 0) {
+      checks.push({ level: CHECK_WARN, text: 'No artwork or frames yet.' });
       return checks;
     }
-    checks.push(...Verifier.resolutionChecks(state));
-    checks.push(...Verifier.pieceSizeChecks(plan, settings));
-    checks.push(...Verifier.sheetChecks(plan, settings));
     const unplacedInBinder = state.artworks.filter((artwork) => !artwork.placement);
     if (unplacedInBinder.length > 0) {
       checks.push({
@@ -29,11 +26,18 @@ const Verifier = {
         text: `Not placed in binder preview: ${unplacedInBinder.map((artwork) => artwork.name).join(', ')}`,
       });
     }
+    if (!Exporter.hasPrintable(state)) {
+      checks.push({ level: CHECK_WARN, text: 'Nothing selected for printing.' });
+      return checks;
+    }
+    checks.push(...Verifier.resolutionChecks(state));
+    checks.push(...Verifier.pieceSizeChecks(plan, settings));
+    checks.push(...Verifier.sheetChecks(plan, settings));
     return checks;
   },
 
   resolutionChecks(state) {
-    return state.artworks.map((artwork) => {
+    return Exporter.printable(state).map((artwork) => {
       const image = state.images.get(artwork.id);
       const dpi = Math.round(Cutter.effectiveDpi(artwork, image, state.settings));
       if (dpi < MINIMUM_DPI) {
@@ -46,17 +50,24 @@ const Verifier = {
     });
   },
 
+  expectedSize(item, settings) {
+    if (item.kind === 'cover') {
+      return Covers.size(settings);
+    }
+    return { width: Geometry.pieceWidth(settings, item.piece.span), height: settings.cardHeightMm };
+  },
+
   pieceSizeChecks(plan, settings) {
     const checks = [];
     const wrongSize = [];
     for (const sheet of plan.sheets) {
       for (const placement of sheet.placements) {
         const { piece } = placement.item;
-        const expectedWidth = Geometry.pieceWidth(settings, piece.span);
+        const expected = Verifier.expectedSize(placement.item, settings);
         const width = placement.rotated ? placement.height : placement.width;
         const height = placement.rotated ? placement.width : placement.height;
-        const widthOk = Math.abs(width - expectedWidth) <= SIZE_TOLERANCE_MM;
-        const heightOk = Math.abs(height - settings.cardHeightMm) <= SIZE_TOLERANCE_MM;
+        const widthOk = Math.abs(width - expected.width) <= SIZE_TOLERANCE_MM;
+        const heightOk = Math.abs(height - expected.height) <= SIZE_TOLERANCE_MM;
         if (!widthOk || !heightOk || piece.span > BINDER_COLUMNS) {
           wrongSize.push(placement.item.label);
         }
@@ -65,9 +76,14 @@ const Verifier = {
     if (wrongSize.length > 0) {
       checks.push({ level: CHECK_ERROR, text: `Wrong piece size: ${wrongSize.join(', ')}` });
     } else {
-      const spans = [...new Set(plan.sheets.flatMap((sheet) => sheet.placements.map((p) => p.item.piece.span)))].sort();
+      const items = plan.sheets.flatMap((sheet) => sheet.placements.map((p) => p.item));
+      const spans = [...new Set(items.filter((item) => item.kind === 'artwork').map((item) => item.piece.span))].sort();
       const sizes = spans.map((span) =>
         `${span}x1 = ${Verifier.formatMm(Geometry.pieceWidth(settings, span))} x ${Verifier.formatMm(settings.cardHeightMm)} mm`);
+      if (items.some((item) => item.kind === 'cover')) {
+        const cover = Covers.size(settings);
+        sizes.push(`frames = ${Verifier.formatMm(cover.width)} x ${Verifier.formatMm(cover.height)} mm`);
+      }
       checks.push({ level: CHECK_OK, text: `All piece sizes match michi dimensions (${sizes.join('; ')}).` });
     }
     if (plan.unplaced.length > 0) {

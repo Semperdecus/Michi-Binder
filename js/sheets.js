@@ -36,9 +36,7 @@ const Sheets = {
     margin.style.inset = Sheets.mm(marginMm);
     paper.append(margin);
     for (const placement of sheet.placements) {
-      const { artwork, piece } = placement.item;
-      const image = state.images.get(artwork.id);
-      const canvas = Cutter.renderPieceCanvas(artwork, image, state.settings, piece, SHEET_PIECE_PX_PER_MM, placement.rotated);
+      const canvas = placement.item.render(SHEET_PIECE_PX_PER_MM, placement.rotated);
       canvas.className = 'sheet-piece';
       canvas.title = `${placement.item.label}: ${placement.width.toFixed(1)} x ${placement.height.toFixed(1)} mm${placement.rotated ? ' (rotated)' : ''}`;
       canvas.style.left = Sheets.mm(placement.x);

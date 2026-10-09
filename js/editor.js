@@ -1,5 +1,7 @@
 const EDITOR_MAX_WIDTH_PX = 640;
 const EDITOR_MAX_HEIGHT_PX = 520;
+const EDITOR_MIN_HEIGHT_PX = 240;
+const EDITOR_RESERVED_HEIGHT_PX = 240;
 const EDITOR_BACKGROUND = '#1b1b1f';
 const DEAD_ZONE_ALPHA = 0.3;
 const SEAM_DASH_MM = 2;
@@ -128,7 +130,8 @@ const Editor = {
     const { draft, image, settings } = Editor;
     Cutter.clampCrop(draft, image, settings);
     const art = Geometry.artSize(settings, draft.cols, draft.rows);
-    Editor.pxPerMm = Math.min(EDITOR_MAX_WIDTH_PX / art.width, EDITOR_MAX_HEIGHT_PX / art.height);
+    const maxHeight = Cutter.clamp(window.innerHeight - EDITOR_RESERVED_HEIGHT_PX, EDITOR_MIN_HEIGHT_PX, EDITOR_MAX_HEIGHT_PX);
+    Editor.pxPerMm = Math.min(EDITOR_MAX_WIDTH_PX / art.width, maxHeight / art.height);
     const ratio = window.devicePixelRatio || 1;
     Editor.canvas.style.width = `${art.width * Editor.pxPerMm}px`;
     Editor.canvas.style.height = `${art.height * Editor.pxPerMm}px`;

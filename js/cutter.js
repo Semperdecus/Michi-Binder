@@ -128,6 +128,10 @@ const Cutter = {
     );
   },
 
+  isFramed(artwork) {
+    return Boolean(FRAME_COLORS[artwork.frame]);
+  },
+
   frameWidth(artwork, settings) {
     return artwork.frameWidthMm ?? settings.frameWidthMm;
   },
@@ -185,24 +189,25 @@ const Cutter = {
     const rect = Geometry.pieceRect(settings, piece);
     const frames = Cutter.frameRects(artwork, settings, piece);
     ctx.save();
-    ctx.fillStyle = PAPER_WHITE;
-    ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-    Cutter.drawSeamStrips(ctx, settings, piece);
     ctx.beginPath();
     ctx.rect(rect.x, rect.y, rect.width, rect.height);
     ctx.clip();
     ctx.beginPath();
-    frames.forEach((frame) => ctx.roundRect(frame.x, frame.y, frame.width, frame.height, settings.cornerRadiusMm));
+    const radius = Cutter.isFramed(artwork) ? settings.cornerRadiusMm : 0;
+    frames.forEach((frame) => ctx.roundRect(frame.x, frame.y, frame.width, frame.height, radius));
     ctx.clip();
+    ctx.fillStyle = PAPER_WHITE;
+    ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+    Cutter.drawSeamStrips(ctx, settings, piece);
     Cutter.drawArt(ctx, artwork, image, settings, piece);
-    if (FRAME_COLORS[artwork.frame]) {
+    if (Cutter.isFramed(artwork)) {
       const border = Cutter.frameWidth(artwork, settings);
       frames.forEach((frame) => Cutter.drawFrameRing(ctx, frame, settings, FRAME_COLORS[artwork.frame], border));
     }
     ctx.restore();
   },
 
-  renderPieceCanvas(artwork, image, settings, piece, pxPerMm, rotated) {
+  renderPieceCanvas(artwork, image, settings, piece, pxPerMm, rotated, onPaper = false) {
     const rect = Geometry.pieceRect(settings, piece);
     const width = Math.round(rect.width * pxPerMm);
     const height = Math.round(rect.height * pxPerMm);
@@ -210,6 +215,10 @@ const Cutter = {
     canvas.width = rotated ? height : width;
     canvas.height = rotated ? width : height;
     const ctx = canvas.getContext('2d');
+    if (onPaper) {
+      ctx.fillStyle = PAPER_WHITE;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
     if (rotated) {
       ctx.translate(canvas.width, 0);
       ctx.rotate(QUARTER_TURN);

@@ -13,16 +13,24 @@ const Binder = {
   onPocketClick: null,
   onMoveCard: null,
   onEditArtwork: null,
+  onAddPage: null,
+  onRemovePage: null,
+  onEditCover: null,
+  onPlaceCover: null,
   suppressClick: false,
   pxPerMm: 1,
   drag: null,
 
-  init(container, { onPlace, onPocketClick, onMoveCard, onEditArtwork }) {
+  init(container, { onPlace, onPocketClick, onMoveCard, onEditArtwork, onAddPage, onRemovePage, onEditCover, onPlaceCover }) {
     Binder.container = container;
     Binder.onPlace = onPlace;
     Binder.onPocketClick = onPocketClick;
     Binder.onMoveCard = onMoveCard;
     Binder.onEditArtwork = onEditArtwork;
+    Binder.onAddPage = onAddPage;
+    Binder.onRemovePage = onRemovePage;
+    Binder.onEditCover = onEditCover;
+    Binder.onPlaceCover = onPlaceCover;
     window.addEventListener('resize', () => Binder.state && Binder.render(Binder.state));
   },
 
@@ -48,7 +56,23 @@ const Binder = {
       }
       spreads.push(spread);
     }
-    Binder.container.replaceChildren(...spreads);
+    const addPage = document.createElement('button');
+    addPage.type = 'button';
+    addPage.className = 'page-add';
+    addPage.title = 'Add page';
+    addPage.setAttribute('aria-label', 'Add page');
+    addPage.addEventListener('click', () => Binder.onAddPage());
+    Binder.container.replaceChildren(...spreads, addPage);
+  },
+
+  renderRemovePage(index) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'page-remove';
+    button.title = `Remove page ${index + 1}`;
+    button.setAttribute('aria-label', `Remove page ${index + 1}`);
+    button.addEventListener('click', () => Binder.onRemovePage(index));
+    return button;
   },
 
   renderPage(state, index, page) {
@@ -60,6 +84,8 @@ const Binder = {
     element.dataset.page = String(index);
     element.style.width = Binder.mm(page.width);
     element.style.height = Binder.mm(page.height);
+    const onPage = state.covers.filter((cover) => cover.placement && cover.placement.page === index);
+    onPage.filter(Sleeves.isSleeve).forEach((cover) => element.append(Binder.renderSleeve(state, cover)));
     for (let row = 0; row < BINDER_ROWS; row++) {
       for (let col = 0; col < BINDER_COLUMNS; col++) {
         element.append(Binder.renderPocket(state, index, col, row));
@@ -68,6 +94,12 @@ const Binder = {
     state.artworks
       .filter((artwork) => artwork.placement && artwork.placement.page === index)
       .forEach((artwork) => element.append(Binder.renderPlaced(state, artwork)));
+    onPage
+      .filter((cover) => !Sleeves.isSleeve(cover))
+      .forEach((cover) => element.append(Binder.renderCover(state, cover)));
+    if (state.pageCount > 1) {
+      element.append(Binder.renderRemovePage(index));
+    }
     const caption = document.createElement('figcaption');
     caption.textContent = `Page ${index + 1}`;
     wrapper.append(element, caption);
@@ -101,6 +133,9 @@ const Binder = {
     const pocket = document.createElement('button');
     pocket.type = 'button';
     pocket.className = card ? 'pocket pocket--filled' : `pocket pocket--${settings.placeholder}`;
+    const sleeved = state.covers.some((cover) => Sleeves.isSleeve(cover) && cover.placement &&
+      cover.placement.page === page && cover.placement.col === col && cover.placement.row === row);
+    pocket.classList.toggle('pocket--sleeved', sleeved);
     if (card) {
       pocket.style.backgroundImage = `url("${state.cardUrls.get(card.id)}")`;
       pocket.title = `${card.name}, ${card.setName} ${card.number}. Drag to move, click to change.`;
@@ -135,8 +170,20 @@ const Binder = {
     const art = Geometry.artSize(settings, artwork.cols, artwork.rows);
     const placed = document.createElement('div');
     placed.className = 'placed-art';
-    placed.title = `${artwork.name}: drag to move, double click to edit`;
-    placed.addEventListener('dblclick', () => Binder.onEditArtwork(artwork.id));
+    placed.title = `${artwork.name}: click to edit, drag to move`;
+    placed.tabIndex = 0;
+    placed.setAttribute('role', 'button');
+    placed.setAttribute('aria-label', `Edit ${artwork.name}`);
+    placed.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        Binder.onEditArtwork(artwork.id);
+      }
+    });
+    placed.addEventListener('click', () => {
+      if (!Binder.suppressClick) {
+        Binder.onEditArtwork(artwork.id);
+      }
+    });
     placed.style.left = Binder.mm(artwork.placement.col * settings.slotPitchXMm + Geometry.gapX(settings) / 2);
     placed.style.top = Binder.mm(artwork.placement.row * settings.slotPitchYMm + Geometry.gapY(settings) / 2);
     placed.style.width = Binder.mm(art.width);
@@ -144,7 +191,7 @@ const Binder = {
     for (const piece of Cutter.pieces(artwork)) {
       const rect = Geometry.pieceRect(settings, piece);
       const canvas = Cutter.renderPieceCanvas(artwork, image, settings, piece, PREVIEW_PX_PER_MM, false);
-      canvas.className = 'placed-piece';
+      canvas.className = Cutter.isFramed(artwork) ? 'placed-piece is-framed' : 'placed-piece';
       canvas.style.left = Binder.mm(rect.x);
       canvas.style.top = Binder.mm(rect.y);
       canvas.style.width = Binder.mm(rect.width);
@@ -162,6 +209,69 @@ const Binder = {
       Binder.startDrag(Binder.artworkDragItem(artwork), grab, event);
     });
     return placed;
+  },
+
+  renderSleeve(state, cover) {
+    const settings = state.settings;
+    const size = Covers.size(settings);
+    const overhang = settings.coverLeewayMm / 2;
+    const sleeve = document.createElement('div');
+    sleeve.className = 'placed-sleeve';
+    sleeve.title = Sleeves.title(cover);
+    sleeve.style.background = Sleeves.color(cover.sleeveColor).hex;
+    sleeve.style.left = Binder.mm(cover.placement.col * settings.slotPitchXMm + Geometry.gapX(settings) / 2 - overhang);
+    sleeve.style.top = Binder.mm(cover.placement.row * settings.slotPitchYMm + Geometry.gapY(settings) / 2 - overhang);
+    sleeve.style.width = Binder.mm(size.width);
+    sleeve.style.height = Binder.mm(size.height);
+    return sleeve;
+  },
+
+  renderCover(state, cover) {
+    const settings = state.settings;
+    const canvas = Covers.renderCanvas(cover, settings, PREVIEW_PX_PER_MM, false, 'preview');
+    canvas.className = 'placed-cover';
+    canvas.title = `${Covers.title(cover)} frame: click to edit, drag to move`;
+    canvas.tabIndex = 0;
+    canvas.setAttribute('role', 'button');
+    canvas.setAttribute('aria-label', `Edit frame ${Covers.title(cover)}`);
+    const size = Covers.size(settings);
+    const overhang = settings.coverLeewayMm / 2;
+    canvas.style.left = Binder.mm(cover.placement.col * settings.slotPitchXMm + Geometry.gapX(settings) / 2 - overhang);
+    canvas.style.top = Binder.mm(cover.placement.row * settings.slotPitchYMm + Geometry.gapY(settings) / 2 - overhang);
+    canvas.style.width = Binder.mm(size.width);
+    canvas.style.height = Binder.mm(size.height);
+    canvas.addEventListener('pointerdown', (event) => Binder.startDrag(Binder.coverDragItem(cover), { col: 0, row: 0 }, event));
+    canvas.addEventListener('click', () => {
+      if (!Binder.suppressClick) {
+        Binder.onEditCover(cover.id);
+      }
+    });
+    canvas.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        Binder.onEditCover(cover.id);
+      }
+    });
+    return canvas;
+  },
+
+  coverDragItem(cover) {
+    return {
+      label: `${Covers.title(cover)} frame`,
+      cols: 1,
+      rows: 1,
+      canPlace: (placement) => Binder.canPlaceCover(cover, placement),
+      drop: (placement) => Binder.onPlaceCover(cover.id, placement),
+    };
+  },
+
+  coverAt(placement, ignoreId) {
+    return Binder.state.covers.some((cover) =>
+      cover.id !== ignoreId && cover.placement && cover.placement.page === placement.page &&
+      cover.placement.col === placement.col && cover.placement.row === placement.row);
+  },
+
+  canPlaceCover(cover, placement) {
+    return Binder.canPlaceCard(placement) && !Binder.coverAt(placement, cover.id);
   },
 
   artworkDragItem(artwork) {
@@ -204,7 +314,10 @@ const Binder = {
     const wanted = new Set(Binder.cellsOf(artwork, placement).map((cell) => `${cell.col},${cell.row}`));
     const blockedByCard = Binder.state.cards.some((card) =>
       card.page === placement.page && wanted.has(`${card.col},${card.row}`));
-    return !blockedByCard && !Binder.state.artworks.some((other) =>
+    const blockedByCover = Binder.state.covers.some((cover) =>
+      cover.placement && cover.placement.page === placement.page &&
+      wanted.has(`${cover.placement.col},${cover.placement.row}`));
+    return !blockedByCard && !blockedByCover && !Binder.state.artworks.some((other) =>
       other.id !== artwork.id && other.placement && other.placement.page === placement.page &&
       Binder.cellsOf(other, other.placement).some((cell) => wanted.has(`${cell.col},${cell.row}`)));
   },

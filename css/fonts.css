@@ -1,0 +1,90 @@
+@font-face {
+  font-family: "Special Elite";
+  src: url("../vendor/fonts/special-elite.woff2") format("woff2");
+  font-display: block;
+}
+
+@font-face {
+  font-family: "La Belle Aurore";
+  src: url("../vendor/fonts/la-belle-aurore.woff2") format("woff2");
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Homemade Apple";
+  src: url("../vendor/fonts/homemade-apple.woff2") format("woff2");
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Mrs Saint Delafield";
+  src: url("../vendor/fonts/mrs-saint-delafield.woff2") format("woff2");
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Herr Von Muellerhoff";
+  src: url("../vendor/fonts/herr-von-muellerhoff.woff2") format("woff2");
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Monsieur La Doulaise";
+  src: url("../vendor/fonts/monsieur-la-doulaise.woff2") format("woff2");
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Mr De Haviland";
+  src: url("../vendor/fonts/mr-de-haviland.woff2") format("woff2");
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Allura";
+  src: url("../vendor/fonts/allura.woff2") format("woff2");
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Meddon";
+  src: url("../vendor/fonts/meddon.woff2") format("woff2");
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Courier Prime";
+  src: url("../vendor/fonts/courier-prime-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Cutive Mono";
+  src: url("../vendor/fonts/cutive-mono.woff2") format("woff2");
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Autography";
+  src: url("../vendor/fonts/personal/autography.otf") format("opentype");
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Brother Signature";
+  src: url("../vendor/fonts/personal/brother-signature.otf") format("opentype");
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Amsterdam";
+  src: url("../vendor/fonts/personal/amsterdam.ttf") format("truetype");
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Always Classy";
+  src: url("../vendor/fonts/personal/always-classy.ttf") format("truetype");
+  font-display: block;
+}

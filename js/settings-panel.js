@@ -7,6 +7,7 @@ const NUMBER_FIELDS = [
   'sheetMarginMm',
   'frameWidthMm',
   'cornerRadiusMm',
+  'coverLeewayMm',
 ];
 const CHOICE_FIELDS = ['paper', 'placeholder'];
 const CHECKBOX_FIELDS = ['showPrices'];
@@ -38,6 +39,7 @@ const SettingsPanel = {
     CHECKBOX_FIELDS.forEach((name) => {
       SettingsPanel.field(name).checked = Boolean(settings[name]);
     });
+    SettingsPanel.field('theme').value = Theme.get();
     SettingsPanel.updateGaps();
   },
 
@@ -71,6 +73,7 @@ const SettingsPanel = {
       return;
     }
     SettingsPanel.dialog.close();
+    Theme.set(SettingsPanel.field('theme').value);
     SettingsPanel.onSave(SettingsPanel.read());
   },
 };
